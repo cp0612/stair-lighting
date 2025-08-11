@@ -1,0 +1,27 @@
+name: Sync from Gitee to GitHub
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # 每 5 分钟检查一次 Gitee 更新
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub repo
+        uses: actions/checkout@v4
+        with:
+          ref: main  # 替换为你的分支名
+
+      - name: Add Gitee remote
+        run: git remote add gitee git@gitee.com:cp0612/stair-lighting.git
+
+      - name: Pull from Gitee
+        run: |
+          git config user.name "Automation Bot"
+          git config user.email "81408242@qq.com"
+          git fetch gitee
+          git merge gitee/main --allow-unrelated-histories  # 合并 Gitee 更新
+
+      - name: Push to GitHub
+        run: git push origin main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.GITEE_PRIVATE_KEY }}  # 使用私钥认证

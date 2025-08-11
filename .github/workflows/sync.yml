@@ -1,7 +1,9 @@
 name: Sync from Gitee to GitHub
 on:
   schedule:
-    - cron: '*/5 * * * *'   # 每 5 分钟检查一次 Gitee 更新
+    - cron: '*/5 * * * *'   # 每 5 分钟检查一次
+  workflow_dispatch:        # 允许手动触发
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -9,7 +11,26 @@ jobs:
       - name: Checkout GitHub repo
         uses: actions/checkout@v4
         with:
-          ref: main  # 替换为你的分支名
+          ref: main
+          # 关键修复：允许持久化认证信息
+          persist-credentials: false  
+
+      - name: Setup SSH keys and known_hosts
+        run: |
+          # 配置SSH目录
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # 将私钥写入文件
+          echo "${{ secrets.GITEE_PRIVATE_KEY }}" > ~/.ssh/gitee_key
+          chmod 600 ~/.ssh/gitee_key
+          
+          # 添加Gitee到已知主机
+          ssh-keyscan gitee.com >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          
+          # 配置Git使用SSH密钥
+          git config --global core.sshCommand "ssh -i ~/.ssh/gitee_key -o IdentitiesOnly=yes"
 
       - name: Add Gitee remote
         run: git remote add gitee git@gitee.com:cp0612/stair-lighting.git
@@ -19,9 +40,8 @@ jobs:
           git config user.name "Automation Bot"
           git config user.email "81408242@qq.com"
           git fetch gitee
-          git merge gitee/master --allow-unrelated-histories  # 合并 Gitee 更新
+          # 注意：你的Gitee分支是master，GitHub是main
+          git merge gitee/master --allow-unrelated-histories
 
       - name: Push to GitHub
         run: git push origin main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.GITEE_PRIVATE_KEY }}  # 使用私钥认证

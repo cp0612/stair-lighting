@@ -19,7 +19,7 @@ jobs:
           git config user.name "Automation Bot"
           git config user.email "81408242@qq.com"
           git fetch gitee
-          git merge gitee/main --allow-unrelated-histories  # 合并 Gitee 更新
+          git merge gitee/master --allow-unrelated-histories  # 合并 Gitee 更新
 
       - name: Push to GitHub
         run: git push origin main

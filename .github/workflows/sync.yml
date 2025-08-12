@@ -3,6 +3,7 @@ on:
 #  schedule:
 #    - cron: '*/5 * * * *'   # 每 5 分钟检查一次 Gitee 更新
   workflow_dispatch:        # 允许手动触发
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -12,19 +13,24 @@ jobs:
         with:
           ref: main
 
-      # 关键修复：添加 SSH 主机密钥验证
+      # 修复1：正确添加 known_hosts
       - name: Add Gitee to known hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan gitee.com >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
-      # 关键修复：在拉取前配置 SSH 密钥
+      # 修复2：正确写入和加载私钥
       - name: Configure SSH for Gitee
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITEE_PRIVATE_KEY }}" | ssh-add -
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GITEE_PRIVATE_KEY }}" > ~/.ssh/gitee_id_rsa
+          chmod 600 ~/.ssh/gitee_id_rsa
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/gitee_id_rsa
+          
+          # 测试连接
+          ssh -T git@gitee.com
 
       - name: Add Gitee remote
         run: git remote add gitee git@gitee.com:cp0612/stair-lighting.git

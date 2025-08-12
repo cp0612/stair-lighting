@@ -1,14 +1,13 @@
 name: Sync from Gitee to GitHub
 on:
-  schedule:
-    - cron: '*/5 * * * *'   # 每 5 分钟检查一次 Gitee 更新
+#  schedule:
+#    - cron: '*/5 * * * *'   # 每 5 分钟检查一次 Gitee 更新
   workflow_dispatch:        # 允许手动触发
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     env:
-      # 关键修复：设置全局 SSH_AUTH_SOCK 环境变量
       SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       
     steps:
@@ -16,6 +15,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
+          # 关键：获取完整的提交历史
+          fetch-depth: 0
 
       - name: Add Gitee to known hosts
         run: |
@@ -23,22 +24,15 @@ jobs:
           ssh-keyscan gitee.com >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      # 关键修复：配置全局 SSH 代理
       - name: Configure SSH for Gitee
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.GITEE_PRIVATE_KEY }}" > ~/.ssh/gitee_id_rsa
           chmod 600 ~/.ssh/gitee_id_rsa
-          
-          # 启动 SSH 代理并设置环境变量
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/gitee_id_rsa
-          
-          # 将代理信息写入环境文件，使后续步骤可用
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> $GITHUB_ENV
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> $GITHUB_ENV
-          
-          # 测试连接
           ssh -T git@gitee.com
 
       - name: Add Gitee remote
@@ -50,9 +44,9 @@ jobs:
           git config user.email "81408242@qq.com"
           git fetch gitee
           git merge gitee/master --allow-unrelated-histories
-          
-          # 可选：验证 SSH 代理是否正常工作
-          ssh -T git@gitee.com
 
       - name: Push to GitHub
-        run: git push origin main
+        run: |
+          # 设置 SSH 方式推送
+          git remote set-url origin git@github.com:cp0612/stair-lighting.git
+          git push origin main

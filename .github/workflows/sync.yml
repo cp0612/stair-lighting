@@ -1,7 +1,7 @@
 name: Sync from Gitee to GitHub
 on:
-#  schedule:
-#    - cron: '*/5 * * * *'   # 每 5 分钟检查一次 Gitee 更新
+  schedule:
+    - cron: '*/5 * * * *'   # 每 5 分钟检查一次 Gitee 更新
   workflow_dispatch:        # 允许手动触发
 
 jobs:
